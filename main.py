@@ -1,22 +1,24 @@
 import numpy as np
 from math import inf
 
-board = [[' ', ' ', ' '],
-         [' ', ' ', ' '],
-         [' ', ' ', ' ']]
+# board = [[' ', ' ', ' '],
+#        [' ', ' ', ' '],
+#       [' ', ' ', ' ']]
 
-players = ['X', 'O']
+human = 'X'
+bot = 'O'
 
 
-def check_game(game):
+def checkForDraw(game):
     draw = True
     for i in range(3):
         for j in range(3):
             if game[i][j] is ' ':
                 draw = False
-    if draw is True:
-        return None, "Draw"
+    return draw
 
+
+def checkForWin(game):
     # check columns for a win
     if game[0][0] is not ' ' and game[0][0] == game[1][0] == game[2][0]:
         return game[0][0], "Win"
@@ -38,26 +40,78 @@ def check_game(game):
         return game[0][0], "Win"
     if game[2][0] is not ' ' and game[2][0] == game[1][1] == game[0][2]:
         return game[2][0], "Win"
+    return [False, False]
 
 
-def minimax(b, player):
-    winnerLoser, done = check_game(b)
-    if done == "Done" and winnerLoser == 'O':
-        return 1
-    elif done == "Done" and winnerLoser == 'X':
-        return -1
-    elif done == "Draw":
-        return 0
+def insertLetter(b, player, row, column):
+    if row not in range(3) or column not in range(3):
+        print("Enter a valid space.\n")
+        r = int(input("Enter row (0-2): "))
+        c = int(input("Enter column (0-2): "))
+        insertLetter(b, human, r, c)
+        return
+    if b[row][column] is not ' ':
+        print("Space is not empty.\n")
+        r = int(input("Enter row (0-2): "))
+        c = int(input("Enter column (0-2): "))
+        insertLetter(b, human, r, c)
+        return
 
-    moves = []
-    empty = []
+    if player == human:
+        b[row][column] = human
+    elif player == bot:
+        b[row][column] = bot
+    return
+
+
+def computeBestMove(b):
+    bestScore = -np.Inf
+    bestMove = [-1, -1]
+
     for i in range(3):
         for j in range(3):
-            if b[i][j] is ' ':
-                empty.append((j+1) + i*3) # 2D to 1D mapping
-    for cell in empty:
-        move = {}
-        move['index'] = cell
+            if b[i][j] == ' ':
+                b[i][j] = bot
+                score = minimax(b, False)
+                b[i][j] = ' '
+                if (score > bestScore):
+                    bestScore = score
+                    bestMove = [i, j]
+    insertLetter(b, bot, bestMove[0], bestMove[1])
+
+
+def minimax(b, isMaximizing):
+    if checkForDraw(b):
+        return 0
+    elif checkForWin(b)[0] == bot:
+        return 100
+    elif checkForWin(b)[0] == human:
+        return -100
+
+    if isMaximizing:
+        bestScore = -np.Inf
+
+        for i in range(3):
+            for j in range(3):
+                if b[i][j] == ' ':
+                    b[i][j] = bot
+                    score = minimax(b, False)
+                    b[i][j] = ' '
+                    if (score > bestScore):
+                        bestScore = score
+        return bestScore
+
+    else:
+        bestScore = np.inf
+        for i in range(3):
+            for j in range(3):
+                if b[i][j] == ' ':
+                    b[i][j] = human
+                    score = minimax(b, True)
+                    b[i][j] = ' '
+                    if (score < bestScore):
+                        bestScore = score
+        return bestScore
 
 
 def print_board(game):
@@ -70,9 +124,34 @@ def print_board(game):
     print('-------------')
 
 
-if __name__ == '__main__':
-    board = [['X', 'O', 'X'],
-             ['O', 'O', 'X'],
-             ['X', ' ', 'O']]
-    print(check_game(board))
+def main():
+    board = [[' ', ' ', ' '],
+             [' ', ' ', ' '],
+             [' ', ' ', ' ']]
+    while checkForWin(board)[1] is not "Win":
+        computeBestMove(board)
+        print_board(board)
+        if checkForWin(board)[1] is "Win": break
+        row = int(input("Enter a row (0-2): "))
+        column = int(input("Enter a column (0-2): "))
+        insertLetter(board, human, row, column)
+        print_board(board)
 
+    if checkForWin(board)[0] == human:
+        print("Impossible! The human wins! \n")
+    elif checkForWin(board)[0] == bot:
+        print("The bot wins again! \n")
+    elif checkForDraw(board):
+        print("Draw!")
+
+    again = input("Play again? (y/n): ")
+    if again == 'y' or again == "Y":
+        print("Please wait a second...\n")
+        main()
+        return
+    else:
+        quit()
+
+
+if __name__ == '__main__':
+    main()
